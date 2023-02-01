@@ -90,6 +90,7 @@ def umyo_parse_preprocessor(data):
     cnt = len(parse_buf)
     if(cnt < 26):
         return
+    parsed_pos = 0
     for i in range(cnt-25):
         if(parse_buf[i] == 79 and parse_buf[i+1] == 213):
             rssi = parse_buf[i+2]
@@ -97,8 +98,12 @@ def umyo_parse_preprocessor(data):
             packet_len = parse_buf[i+4]
             if(packet_len > 20 and i + packet_len < cnt):
                 umyo_parse(i+3)
-                del parse_buf[0:i+2+packet_len]
-                break
+                parsed_pos = i+2+packet_len
+                i += 1+packet_len
+#                del parse_buf[0:i+2+packet_len]
+#                break
+    if(parsed_pos > 0): del parse_buf[0:parsed_pos]
+    return cnt
 
 def umyo_get_list():
     return umyo_list

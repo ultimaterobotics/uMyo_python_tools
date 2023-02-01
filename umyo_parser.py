@@ -66,8 +66,8 @@ def umyo_parse(pos):
         hb = parse_buf[pp]; pp+=1
         lb = parse_buf[pp]; pp+=1
         val = hb*256 + lb
-        if(hb > 127):
-            val = -65536 + val
+#        if(hb > 127):
+#            val = -65536 + val
         umyo_list[idx].device_spectr[x] = val
 
     hb = parse_buf[pp]; pp+=1; lb = parse_buf[pp]; pp+=1; val = hb*256 + lb    

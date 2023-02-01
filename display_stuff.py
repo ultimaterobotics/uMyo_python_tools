@@ -115,7 +115,9 @@ def plot_cycle_spg():
                 by = DY+YS*n
                 rw = x_scale
                 rh = YS
-                cl = val_to_color(plot_spg[d][x*4+3-n])
+                val = plot_spg[d][x*4+3-n]
+                if(n == 3): val *= 0.01
+                cl = val_to_color(val)
                 screen.fill(cl,(bx,by,rw,rh))
         
 #    screen.blit(ball, ballrect)

@@ -26,6 +26,7 @@ class uMyo:
         self.yaw_speed = 0
         self.pitch_speed = 0
         self.roll_speed = 0
+        self.mag_angle = 0
     
     
 

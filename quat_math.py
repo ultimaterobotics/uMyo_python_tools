@@ -10,7 +10,7 @@ def v_norm(v):
     return math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 
 def q_renorm(q):
-    r = q_norm(v);
+    r = q_norm(q);
     w = 0
     x = 0
     y = 0

@@ -165,14 +165,34 @@ def plot_cycle_tester():
                 if(n == 3): val *= 0.01
                 cl = val_to_color(val)
                 screen.fill(cl,(bx,by,rw,rh))
-            gg = plot_accel[d][3*x]*plot_accel[d][3*x] + plot_accel[d][3*x+1]*plot_accel[d][3*x+1] + plot_accel[d][3*x+2]*plot_accel[d][3*x+2]
-            gg /= 8192*8129
-            gg *= YS
-            xy.append([DX+x*x_scale, DY*1.2+gg])
+#            gg = plot_accel[d][3*x]*plot_accel[d][3*x] + plot_accel[d][3*x+1]*plot_accel[d][3*x+1] + plot_accel[d][3*x+2]*plot_accel[d][3*x+2]
+#            gg /= 8192*8129
+#            gg *= YS
+        xy = []
+        for x in range(spg_len):
+            ax = plot_accel[d][3*x] / 8129 * YS + YS*4
+            xy.append([DX+x*x_scale, DY*1.2+ax])
 
-        cl = num_to_color(d)        
+        cl = 255,0,0 #num_to_color(d)        
         pygame.draw.lines(screen, cl, False, xy)
 
+        xy = []
+        for x in range(spg_len):
+            ay = plot_accel[d][3*x+1] / 8129 * YS + YS*4
+            xy.append([DX+x*x_scale, DY*1.2+ay])
+
+        cl = (255,255,0) #num_to_color(d)        
+        pygame.draw.lines(screen, cl, False, xy)
+
+        xy = []
+        for x in range(spg_len):
+            az = plot_accel[d][3*x+2] / 8129 * YS + YS*4
+            xy.append([DX+x*x_scale, DY*1.2+az])
+
+        cl = (0,0,255) #num_to_color(d)        
+        pygame.draw.lines(screen, cl, False, xy)
+
+        xy = []
         DX = 10 + x_scale*spg_len + 10
 #        DY = height/2 - YS*6*active_devices/2 + YS*6*(cur_devices-1) # (1+active_devices) * (d+1)
 #        DY = height/(1+active_devices) * (d+1)
@@ -208,7 +228,8 @@ def plot_cycle_tester():
         
         x_sz = sig_level*0.01 * width*0.3 - 2
         screen.fill(cl,(DX + width*0.05+1,DY - 29,x_sz,23))
-        
+
+#Compass drawing        
         mag_angle = 3.1415 - dev_mag_angle[d]
         compass_R = YS*2
         compass_D = 0.1 * compass_R
@@ -236,7 +257,35 @@ def plot_cycle_tester():
         xy.append([S_x, S_y])
         cl = 255,0,0
         pygame.draw.lines(screen, cl, False, xy)
+
+#IMU drawing        
+        imu_S = YS
+        imu_cx = DX + width*0.9
+        imu_cy = DY + imu_S
+        N_x = compass_cx + compass_R * sin(mag_angle)
+        N_y = compass_cy + compass_R * cos(mag_angle)
+        S_x = compass_cx + compass_R * sin(3.1415 + mag_angle)
+        S_y = compass_cy + compass_R * cos(3.1415 + mag_angle)
+        E_x = compass_cx + compass_D * sin(3.1415/2 + mag_angle)
+        E_y = compass_cy + compass_D * cos(3.1415/2 + mag_angle)
+        W_x = compass_cx + compass_D * sin(3*3.1415/2 + mag_angle)
+        W_y = compass_cy + compass_D * cos(3*3.1415/2 + mag_angle)
+        xy = []
+        xy.append([N_x, N_y])
+        xy.append([E_x, E_y])
+        xy.append([W_x, W_y])
+        xy.append([N_x, N_y])
+        cl = 0,0,255
+        pygame.draw.lines(screen, cl, False, xy)
+        xy = []
+        xy.append([S_x, S_y])
+        xy.append([E_x, E_y])
+        xy.append([W_x, W_y])
+        xy.append([S_x, S_y])
+        cl = 255,0,0
+        pygame.draw.lines(screen, cl, False, xy)
         
+#Battery drawing        
         batt_perc = (dev_batt[d] - 3100)/10
         if(batt_perc < 0): batt_perc = 0
         batt_dx = DX + width*0.95

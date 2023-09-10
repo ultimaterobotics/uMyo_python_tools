@@ -146,6 +146,7 @@ def umyo_parse(pos):
 #    print("calc mag A", asign*math.acos(v_dot(H_hor, M_hor)))
 #    print("mag", mx, my, mz)
 #    print("A", ax, ay, az)
+    pitch = round(math.atan2(ay, az)*1000)
 #    print("angles", yaw, pitch, roll)
 #    print("yaw_calc", yaw_q) 
 
@@ -153,6 +154,11 @@ def umyo_parse(pos):
     umyo_list[idx].Qsg[1] = qwx
     umyo_list[idx].Qsg[2] = qwy
     umyo_list[idx].Qsg[3] = qwz
+    umyo_list[idx].yaw = yaw
+    umyo_list[idx].pitch = umyo_list[idx].pitch * 0.95 + 0.05 * pitch
+    if(pitch > 2000 and umyo_list[idx].pitch < -2000): umyo_list[idx].pitch = pitch 
+    if(pitch < -2000 and umyo_list[idx].pitch > 2000): umyo_list[idx].pitch = pitch 
+    umyo_list[idx].roll = roll
     umyo_list[idx].ax = ax
     umyo_list[idx].ay = ay
     umyo_list[idx].az = az
@@ -163,15 +169,15 @@ def umyo_parse(pos):
 def umyo_parse_preprocessor(data):
     parse_buf.extend(data)
     cnt = len(parse_buf)
-    if(cnt < 67):
+    if(cnt < 72):
         return 0
     parsed_pos = 0
-    for i in range(cnt-67):
+    for i in range(cnt-70):
         if(parse_buf[i] == 79 and parse_buf[i+1] == 213):
             rssi = parse_buf[i+2]
             packet_id = parse_buf[i+3]
             packet_len = parse_buf[i+4]
-            if(packet_len > 20 and i + packet_len < cnt):
+            if(packet_len > 20 and i + 3 + packet_len < cnt):
                 umyo_parse(i+3)
                 parsed_pos = i+2+packet_len
                 i += 1+packet_len

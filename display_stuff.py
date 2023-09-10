@@ -10,9 +10,11 @@ screen = pygame.display.set_mode(size)
 
 plot_len = 2000
 spg_len = 200
-plot_ys = []
+plot_emg = []
 plot_spg = []
-plot_accel = []
+plot_ax = []
+plot_ay = []
+plot_az = []
 plot_Q = []
 dev_rssi = [0]*max_devices
 dev_batt = [0]*max_devices
@@ -24,11 +26,13 @@ not_updated_cnt = [10000]*max_devices
 active_devices = 0
 
 def plot_init():
-    global plot_ys, max_devices
+    global plot_emg, max_devices
     for i in range(max_devices):
-        plot_ys.append([0]*plot_len)
+        plot_emg.append([0]*plot_len)
         plot_spg.append([0]*spg_len*4)
-        plot_accel.append([0]*spg_len*3)
+        plot_ax.append([0]*spg_len)
+        plot_ay.append([0]*spg_len)
+        plot_az.append([0]*spg_len)
         plot_Q.append([0]*spg_len*4)
 
 def num_to_color(n):
@@ -42,7 +46,7 @@ def num_to_color(n):
     return 100, 100, 100
 
 def plot_cycle_lines():
-    global plot_ys, max_devices, last_data_id, y_zero, y_scale, plot_len, active_devices
+    global plot_emg, max_devices, last_data_id, y_zero, y_scale, plot_len, active_devices
     for event in pygame.event.get():
         if(event.type == pygame.QUIT): sys.exit()
     screen.fill([0,0,0])
@@ -56,7 +60,7 @@ def plot_cycle_lines():
         DY = height/(1+active_devices) * (d+1)
         x_scale = (width - DX*2) / plot_len
         for x in range(plot_len):
-            xy.append([DX+x*x_scale, DY+(plot_ys[d][x]-y_zero[d])*y_scale[d]])
+            xy.append([DX+x*x_scale, DY+(plot_emg[d][x]-y_zero[d])*y_scale[d]])
         cl = num_to_color(d)
         
         pygame.draw.lines(screen, cl, False, xy)
@@ -165,12 +169,9 @@ def plot_cycle_tester():
                 if(n == 3): val *= 0.01
                 cl = val_to_color(val)
                 screen.fill(cl,(bx,by,rw,rh))
-#            gg = plot_accel[d][3*x]*plot_accel[d][3*x] + plot_accel[d][3*x+1]*plot_accel[d][3*x+1] + plot_accel[d][3*x+2]*plot_accel[d][3*x+2]
-#            gg /= 8192*8129
-#            gg *= YS
         xy = []
         for x in range(spg_len):
-            ax = plot_accel[d][3*x] / 8129 * YS + YS*4
+            ax = plot_ax[d][x] / 8129 * YS + YS*4
             xy.append([DX+x*x_scale, DY*1.2+ax])
 
         cl = 255,0,0 #num_to_color(d)        
@@ -178,7 +179,7 @@ def plot_cycle_tester():
 
         xy = []
         for x in range(spg_len):
-            ay = plot_accel[d][3*x+1] / 8129 * YS + YS*4
+            ay = plot_ay[d][x] / 8129 * YS + YS*4
             xy.append([DX+x*x_scale, DY*1.2+ay])
 
         cl = (255,255,0) #num_to_color(d)        
@@ -186,7 +187,7 @@ def plot_cycle_tester():
 
         xy = []
         for x in range(spg_len):
-            az = plot_accel[d][3*x+2] / 8129 * YS + YS*4
+            az = plot_az[d][x] / 8129 * YS + YS*4
             xy.append([DX+x*x_scale, DY*1.2+az])
 
         cl = (0,0,255) #num_to_color(d)        
@@ -198,8 +199,8 @@ def plot_cycle_tester():
 #        DY = height/(1+active_devices) * (d+1)
         x_scale = 0.4*(width - 20) / plot_len
         for x in range(plot_len):
-#            xy.append([DX+x*x_scale, DY+(plot_ys[d][x]-y_zero[d])*y_scale[d]])
-            xy.append([DX+x*x_scale, DY+(plot_ys[d][x]-0)*height*0.5/32768])
+#            xy.append([DX+x*x_scale, DY+(plot_emg[d][x]-y_zero[d])*y_scale[d]])
+            xy.append([DX+x*x_scale, DY+(plot_emg[d][x]-0)*height*0.5/32768])
         cl = num_to_color(d)
         pygame.draw.lines(screen, cl, False, xy)
 
@@ -319,7 +320,7 @@ def plot_cycle_tester():
     return active_devices
 
 def plot_prepare(devices):
-    global plot_ys, plot_spg, max_devices, last_data_id, y_zero, active_devices
+    global plot_emg, plot_spg, max_devices, last_data_id, y_zero, active_devices
     for i in range(max_devices): not_updated_cnt[i] += 1
     cnt = len(devices)
     if(cnt < 1): return
@@ -330,12 +331,12 @@ def plot_prepare(devices):
                 plot_spg[d].append(devices[d].device_spectr[n])
             for x in range(devices[d].data_count):
                 val = devices[d].data_array[x]
-                plot_ys[d].append(val)
+                plot_emg[d].append(val)
                 y_zero[d] = 0.997*y_zero[d] + 0.003*val
             
-            plot_accel[d].append(devices[d].ax)
-            plot_accel[d].append(devices[d].ay)
-            plot_accel[d].append(devices[d].az)
+            plot_ax[d].append(devices[d].ax)
+            plot_ay[d].append(devices[d].ay)
+            plot_az[d].append(devices[d].az)
             plot_Q[d].append(devices[d].Qsg[0])
             plot_Q[d].append(devices[d].Qsg[1])
             plot_Q[d].append(devices[d].Qsg[2])
@@ -348,11 +349,13 @@ def plot_prepare(devices):
             dev_mag_angle[d] = devices[d].mag_angle
         if(hasattr(devices[d], 'batt')):
             dev_batt[d] = devices[d].batt
-        if(len(plot_ys[d]) < 2): return
-        plot_ys[d] = plot_ys[d][-plot_len:]
+        if(len(plot_emg[d]) < 2): return
+        plot_emg[d] = plot_emg[d][-plot_len:]
         plot_spg[d] = plot_spg[d][-spg_len*4:]
-        plot_accel[d] = plot_accel[d][-spg_len*3:]
+        plot_ax[d] = plot_ax[d][-spg_len:]
+        plot_ay[d] = plot_ay[d][-spg_len:]
+        plot_az[d] = plot_az[d][-spg_len:]
         plot_Q[d] = plot_Q[d][-spg_len*4:]
-#    print(plot_ys[0])
+#    print(plot_emg[0])
     return devices[0].data_id
 

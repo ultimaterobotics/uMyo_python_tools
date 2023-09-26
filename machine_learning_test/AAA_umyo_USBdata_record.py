@@ -1,7 +1,7 @@
 #kinda main
 
-import umyo_parser
-import display_stuff
+import AAA_umyo_parser
+import AAA_display_stuff
 
 # list
 from serial.tools import list_ports

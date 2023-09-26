@@ -1,6 +1,6 @@
 #parser
 
-import umyo_class
+import AAA_umyo_class
 import quat_math
 #from quat_math import sV
 from quat_math import *

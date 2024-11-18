@@ -49,6 +49,7 @@ def umyo_parse(pos):
 
     umyo_list[idx].rssi = rssi
     param_id = parse_buf[pp]; pp+=1
+
     pb1 = parse_buf[pp]; pp+=1
     pb2 = parse_buf[pp]; pp+=1
     pb3 = parse_buf[pp]; pp+=1
@@ -56,6 +57,7 @@ def umyo_parse(pos):
         umyo_list[idx].batt = 2000 + pb1*10;
         umyo_list[idx].version = pb2
     data_id = parse_buf[pp]; pp+=1
+
     d_id = data_id - umyo_list[idx].prev_data_id
     umyo_list[idx].prev_data_id = data_id
     if(d_id < 0): d_id += 256
@@ -172,17 +174,23 @@ def umyo_parse_preprocessor(data):
     if(cnt < 72):
         return 0
     parsed_pos = 0
-    for i in range(cnt-70):
+
+    i=0
+    while i<(cnt-70):
         if(parse_buf[i] == 79 and parse_buf[i+1] == 213):
             rssi = parse_buf[i+2]
             packet_id = parse_buf[i+3]
             packet_len = parse_buf[i+4]
-            if(packet_len > 20 and i + 3 + packet_len < cnt):
+
+            if(packet_len > 20 and i + 5 + packet_len <= cnt):
                 umyo_parse(i+3)
                 parsed_pos = i+2+packet_len
                 i += 1+packet_len
+                continue
 #                del parse_buf[0:i+2+packet_len]
 #                break
+        i+=1
+
     if(parsed_pos > 0): del parse_buf[0:parsed_pos]
     return cnt
 

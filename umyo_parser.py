@@ -124,6 +124,8 @@ def umyo_parse(pos):
         hb = parse_buf[pp]; pp+=1; lb = parse_buf[pp]; pp+=1; val = hb*256 + lb    
         if(val > 32767): val = -(65536-val)
         mz = val
+
+
     nyr = sV(0, 1, 0)
     Qsg = sQ(qww, qwx, qwy, qwz)    
     nyr = quat_math.rotate_v(Qsg, nyr);
@@ -168,31 +170,80 @@ def umyo_parse(pos):
 
 #    print(data_id)
 
+
+## Packet Format: 
+## full packet length is 65
+#
+# 1 header: 79 
+# 2 header: 213 
+# 3 RSSI: 
+# 4 packet ID: 
+# 5 packet length: 62 is only valid packet length
+# 6-9 unit ID
+# 10 packet type: 80-120   note: data_count = packet_type - 80 == 8; packet_type is set at 88.
+# 11 param ID: 0
+# 12-13 pb1 battery
+# 14-15 pb2 version 
+# 16-17 pb3 unused??
+# 18-19 data ID
+# 20:(20+datacount) data_array has size data_count
+# (20+1+datacount):(20+1+datacount+4) device_spectr has size 4      
+# (20+1+datacount+5):(20+1+datacount+13) quaternion{w,x,y,z} has size 8
+# (20+1+datacount+14):(20+1+datacount+20) accel{x,y,z} has size 6
+# (20+1+datacount+21):(20+1+datacount+27) angles{yaw,pitch,roll} has size 6
+# (20+1+datacount+28):(20+1+datacount+34) mag{x,y,z} has size 6
+# ...
+
+
+# USB receiver gets those packets and sends them unchanged via USB with adding 3 bytes 
+# before each one: 0x4F, 0xD5 and rssi level measured when receiving this packet.
+
 def umyo_parse_preprocessor(data):
     parse_buf.extend(data)
     cnt = len(parse_buf)
-    if(cnt < 72):
+
+    if(cnt < 65): ##  LESS THAN FULL PACKET LENGTH
         return 0
     parsed_pos = 0
+    
+    #print(f"""NEW PACKET DETECTED | cnt= {cnt}""")
+    #N = 30  # adjust this number to control items per line
+    #print("\n".join(
+    #    "".join(f"{i}:{b}|" for i, b in enumerate(parse_buf[j:j+N], j+1))
+    #    for j in range(0, len(parse_buf), N)
+    #))  
+    #print('-'*100)
 
     i=0
-    while i<(cnt-70):
+    while i <= (cnt-65):
         if(parse_buf[i] == 79 and parse_buf[i+1] == 213):
-            rssi = parse_buf[i+2]
-            packet_id = parse_buf[i+3]
             packet_len = parse_buf[i+4]
-
-            if(packet_len > 20 and i + 5 + packet_len <= cnt):
+            if (packet_len == 62):
                 umyo_parse(i+3)
-                parsed_pos = i+2+packet_len
+                parsed_pos = i+3+packet_len
                 i += 1+packet_len
                 continue
-#                del parse_buf[0:i+2+packet_len]
-#                break
+            #else:
+                #print("PARSE ERROR. FOUND HEADER BUT NOT VALID PACKET LENGTH. SKIPPING TO NEXT HEADER")
+                # Note: the while loop will increment i by 1, so we will skip to the next header and the deletion in cumulative
         i+=1
+    
+    if(parsed_pos > 0): 
+        #print(f'DELETING = {parsed_pos} | BUFFER AFTER DELETION:')
+        del parse_buf[0:parsed_pos]
 
-    if(parsed_pos > 0): del parse_buf[0:parsed_pos]
+        #print("\n".join(
+        # "".join(f"{i}:{b}|" for i, b in enumerate(parse_buf[j:j+N], j+1))
+        #for j in range(0, len(parse_buf), N)
+        #))  
+        #print('-'*100)
+        #print('-'*100)
+    
+    
     return cnt
 
 def umyo_get_list():
     return umyo_list
+
+
+#packet size = 67 = 62 +5 header

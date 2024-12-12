@@ -6,6 +6,7 @@ import numpy as np
 from zmq import device
 
 import umyo_class
+from umyo_parser import DeviceData
 
 class DataLogger:
     def __init__(self, base_path="logs"):
@@ -43,30 +44,30 @@ class DataLogger:
             'battery'
         ])
         
-    def log_device_data(self, device, timestamp):
-        """Log device data with provided timestamp"""
+    def log_device_data(self, packet: DeviceData, timestamp: float):
+        """Log packet data with provided timestamp
+        
+        Args:
+            packet: DeviceData object containing device data
+            timestamp: float, timestamp of the data
+        """
         if self.csv_writer is None:
             return
         
-        # Verify we have a valid device object
-        if not isinstance(device, umyo_class.uMyo):
-            print("\nWarning: Invalid device object")
-            return
-        
         try:
-            # All attributes should exist, so we can access directly
+            # Extract data from DeviceData packet
             row = [
                 f"{timestamp:.6f}",  # Explicitly format with 6 decimal places
-                device.unit_id,
-                *device.data_array[:8],
-                *device.device_spectr[:4],
-                device.ax,
-                device.ay,
-                device.az,
-                *device.Qsg[:4],
-                device.mag_angle,
-                device.rssi,
-                device.batt
+                packet.device_id,
+                *packet.data['data_array'][:8],  # EMG data
+                *packet.data['device_spectr'][:4],  # Spectrogram
+                packet.data['ax'],
+                packet.data['ay'],
+                packet.data['az'],
+                *packet.data['Qsg'][:4],  # Quaternions
+                packet.data['mag_angle'],
+                packet.data['rssi'],
+                packet.data['batt']
             ]
             
             self.csv_writer.writerow(row)
@@ -79,7 +80,7 @@ class DataLogger:
                 self.rows_since_flush += 1
                 
         except Exception as e:
-            print(f"\nError logging data for device {device.unit_id}: {e}")
+            print(f"\nError logging data for device {packet.device_id}: {e}")
 
     def close(self):
         """Close the current logging session"""

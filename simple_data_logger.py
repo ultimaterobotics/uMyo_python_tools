@@ -5,18 +5,18 @@ import serial
 import time
 import sys
 from datetime import datetime
-from collections import deque
-from statistics import mean
 
 
-def print_status(message, end='\r'):
+def print_status(message, end="\r"):
     """Print status message with carriage return to update in place"""
     sys.stdout.write(f"\r{message}{' ' * 20}")
     sys.stdout.flush()
-    if end == '\n':
-        sys.stdout.write('\n')
+    if end == "\n":
+        sys.stdout.write("\n")
 
-# Initialize data logger
+
+# Initialize data logger and parser
+parser = umyo_parser.UMyoParser()
 logger = DataLogger()
 logger.start_new_session()
 
@@ -35,7 +35,7 @@ ser = serial.Serial(
     parity=serial.PARITY_NONE,
     stopbits=1,
     bytesize=8,
-    timeout=0
+    timeout=0,
 )
 
 print(f"\nConnected to: {ser.portstr}")
@@ -43,43 +43,36 @@ print("Waiting for device input... (Ctrl+C to exit)")
 
 try:
     last_status_time = time.time()
-    last_data_time = time.time()
+    #last_data_time = time.time()
     packet_count = 0
     show_waiting = True
     data_started = False
-    
+
     while True:
         current_time = time.time()
         cnt = ser.in_waiting
-        
-        if cnt > 0:
-                
-            data = ser.read(cnt)
 
+        if cnt > 0:
             if not data_started:
                 data_started = True
-                stats_start_time = time.time()
-                print_status("Data collection started!", end='\n')
+                print_status("Data collection started!", end="\n")
+
+            data = ser.read(cnt)
+            packets_processed = parser.parse_packet(data)
             
-            parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
-            devices = umyo_parser.umyo_get_list()
-            
-            # Log data for each device
-            for device in devices:
-                 if device is not None:  # Make sure we have a valid device
-                    receive_time = time.time() #- logger.session_start_time
-                    logger.log_device_data(device, receive_time)
-            
-            packet_count += 1
-            last_data_time = current_time   
-            
+            if packets_processed > 0:
+                # Process all available packets in the queue
+                while (packet := parser.get_next_packet()) is not None:
+                    logger.log_device_data(packet, packet.timestamp)
+                    packet_count += packets_processed
+
+            #last_data_time = current_time
+
             # Update receiving status every 2 seconds
             if current_time - last_status_time >= 2.0:
-                duration = current_time - stats_start_time
                 print_status(f"Receiving data... (Packets: {packet_count//1000}k)")
                 last_status_time = current_time
-                stats_start_time = current_time
-                
+
         elif not data_started:
             # Blink waiting message every second
             if current_time - last_status_time >= 1.0:
@@ -91,11 +84,11 @@ try:
                 last_status_time = current_time
 
 except KeyboardInterrupt:
-    print_status("\nClosing gracefully...", end='\n')
-    
+    print_status("\nClosing gracefully...", end="\n")
+
 except Exception as e:
     print(f"\nError occurred: {e}")
-    
+
 finally:
     try:
         logger.close()

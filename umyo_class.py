@@ -1,5 +1,5 @@
+class uMyo:
 
-class uMyo:    
     def __init__(self, uid):
         self.last_pack_id = 0
         self.unit_id = uid
@@ -10,12 +10,14 @@ class uMyo:
         self.steps = 0
         self.data_id = 0
         self.prev_data_id = 0
-        self.data_array = [0] * 64 #in case of further changes, right now 16 data points
+        self.data_array = [
+            0
+        ] * 64  # in case of further changes, right now 16 data points
         self.device_spectr = [0] * 16
-#	sQ Qsg;
-#	sQ zeroQ;
-        self.Qsg = [0,0,0,0]
-        self.zeroQ = [0,0,0,0]
+        # sQ Qsg;
+        # sQ zeroQ;
+        self.Qsg = [0, 0, 0, 0]
+        self.zeroQ = [0, 0, 0, 0]
         self.yaw = 0
         self.pitch = 0
         self.roll = 0
@@ -27,6 +29,3 @@ class uMyo:
         self.pitch_speed = 0
         self.roll_speed = 0
         self.mag_angle = 0
-    
-    
-

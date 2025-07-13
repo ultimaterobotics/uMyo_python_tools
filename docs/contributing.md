@@ -34,8 +34,8 @@ pip install -r requirements.txt
 
 ### Git Workflow
 ```bash
-# 1. Clone the repo
-git clone https://github.com/ultimaterobotics/uMyo_python_tools.git
+# 1. Fork and then Clone the repo
+git clone https://github.com/YOUR_USER/uMyo_python_tools.git
 cd uMyo_python_tools
 
 # 2. Create development branch
@@ -44,12 +44,14 @@ git checkout -b feature/your-feature-name
 # 3. Make your changes
 # ... edit files ...
 
-# 5. Commit changes
+# 4. Commit changes
 git add .
 git commit -m "feat: add new signal processing algorithm"
 
 # 5. Push and create pull request
 git push origin feature/your-feature-name
+
+# 6. Make a PR
 ```
 
 ## 📋 Development Guidelines

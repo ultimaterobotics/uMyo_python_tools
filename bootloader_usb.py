@@ -1,3 +1,62 @@
+"""USB Firmware Bootloader for uMyo Devices.
+
+This module provides a command-line utility for uploading firmware to uMyo devices
+via USB serial communication. It implements a robust protocol for firmware flashing
+with error detection, automatic retries, and progress reporting.
+
+The bootloader uses a custom packet protocol with checksums to ensure reliable
+firmware transmission. It automatically detects when a device is connected in
+bootloader mode and handles the complete firmware upload process.
+
+Protocol Details:
+    - Uses custom packet format with header [223, 98]
+    - Implements triple checksum validation (odd, tri, all)
+    - 32-byte payload per packet with automatic retry on failure
+    - Progress reporting every 5% of upload completion
+    - Automatic device detection when plugged in
+
+Error Codes:
+    - 11: OK (successful packet)
+    - 100: Packet too long
+    - 101: Wrong checksum
+    - 102: Wrong length
+    - 103: Packet missing
+    - 104: Timeout
+
+Usage:
+    python bootloader_usb.py firmware.bin [-v]
+
+Args:
+    firmware.bin: Path to the firmware binary file to upload
+    -v: Optional verbose mode for detailed logging
+
+Example:
+    # Basic firmware upload
+    python bootloader_usb.py myFirmware.bin
+    
+    # Verbose upload with debug information
+    python bootloader_usb.py myFirmware.bin -v
+
+The bootloader will:
+    1. Read the firmware binary file
+    2. List current USB devices
+    3. Wait for a new device to be connected (bootloader mode)
+    4. Establish communication at 921600 baud
+    5. Send initialization packet with firmware size
+    6. Upload firmware in 32-byte chunks with error checking
+    7. Report progress and handle retries automatically
+    8. Confirm successful upload completion
+
+Note:
+    This bootloader is specifically designed for uMyo EMG sensor devices
+    and uses a proprietary protocol. The device must be in bootloader mode
+    (usually entered by holding a button during power-on) for the upload
+    to succeed.
+
+Author: uMyo Development Team
+Version: 1.0
+"""
+
 import sys
 import time
 import serial

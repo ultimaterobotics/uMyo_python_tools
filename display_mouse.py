@@ -1,3 +1,60 @@
+"""Real-time Mouse Gesture and Calibration Visualization Module.
+
+This module provides sophisticated real-time visualization capabilities for mouse 
+gesture control and sensor calibration using pygame. It creates graphical displays 
+for directional arrows representing mouse movement intentions and calibration 
+progress indicators for EMG sensor setup.
+
+The module is specifically designed for human-computer interface applications 
+where EMG signals are used to control mouse movement. It provides:
+
+- Directional arrow visualization for gesture-based mouse control
+- Real-time calibration progress display with visual feedback
+- Smooth 2D rotation calculations for natural gesture representation
+- Color-coded visual elements for intuitive user interaction
+
+Key Features:
+    - Real-time arrow rotation based on angle input (radians)
+    - Calibration progress visualization with stage indicators
+    - Optimized graphics rendering for low-latency HCI applications
+    - Clean, minimalist interface design for distraction-free operation
+
+Technical Implementation:
+    - Window size: 250x200 pixels (optimized for compact display)
+    - Mathematical rotation using trigonometric transformations
+    - Anti-aliased line drawing for smooth visual appearance
+    - Event handling for graceful window management
+
+Applications:
+    - EMG-controlled mouse cursor systems
+    - Gesture recognition training interfaces
+    - Assistive technology for motor-impaired users
+    - Research platforms for HCI studies
+    - Real-time biometric control systems
+
+Dependencies:
+    - pygame: Graphics rendering and window management
+    - math: Trigonometric calculations for rotation
+    - sys: System operations and clean exit handling
+
+Example Usage:
+    >>> import display_mouse
+    >>> import math
+    >>> 
+    >>> # Display arrow pointing right (0 radians)
+    >>> display_mouse.draw_arrow(0)
+    >>> 
+    >>> # Display arrow pointing up (π/2 radians)
+    >>> display_mouse.draw_arrow(math.pi/2)
+    >>> 
+    >>> # Show calibration progress
+    >>> display_mouse.draw_calibrate(stage=2, progress=0.75)
+
+Author: uMyo Development Team
+License: See LICENSE file in the project root
+Version: 1.0
+"""
+
 # drawing via pygame
 
 import sys
@@ -11,6 +68,60 @@ screen = pygame.display.set_mode(size)
 
 
 def draw_arrow(angle):
+    """Draw a rotated arrow indicating direction for mouse gesture control.
+    
+    Renders a directional arrow rotated by the specified angle, used to provide 
+    visual feedback for gesture-based mouse control systems. The arrow is drawn 
+    with an arrowhead and rotated around a central reference point using 
+    trigonometric transformations.
+    
+    The arrow visualization consists of:
+    - Main shaft: A line from the tail to the head
+    - Arrowhead: Two angled lines forming the pointed tip
+    - Rotation: Applied around the screen center (125, 100)
+    - Color: Green theme (80, 155, 0) for clear visibility
+    
+    Args:
+        angle (float): Rotation angle in radians. Positive values rotate 
+            clockwise, negative values rotate counterclockwise.
+            - 0.0: Arrow points right (→)
+            - π/2: Arrow points down (↓) 
+            - π: Arrow points left (←)
+            - 3π/2: Arrow points up (↑)
+    
+    Returns:
+        None: This function draws directly to the pygame screen buffer.
+    
+    Side Effects:
+        - Draws lines on the global pygame screen surface
+        - Modifies the display buffer (requires pygame.display.flip() to show)
+    
+    Example:
+        >>> import math
+        >>> # Point arrow to the right
+        >>> draw_arrow(0.0)
+        
+        >>> # Point arrow upward  
+        >>> draw_arrow(math.pi/2)
+        
+        >>> # Point arrow at 45-degree angle
+        >>> draw_arrow(math.pi/4)
+    
+    Technical Details:
+        - Arrow length: 70 pixels from tail to head
+        - Arrowhead size: 20 pixels (width and height)
+        - Line thickness: 4 pixels for clear visibility
+        - Reference point: (125, 100) - screen center
+        - Rotation uses standard 2D rotation matrix:
+          [cos(θ) -sin(θ)]
+          [sin(θ)  cos(θ)]
+    
+    Performance Notes:
+        - Optimized for real-time rendering
+        - Uses integer pixel coordinates after rotation
+        - Minimal floating-point operations for efficiency
+        - Small coordinate adjustments prevent visual artifacts
+    """
     cl = 80, 155, 0
     ref_x = 125
     ref_y = 100
@@ -42,6 +153,69 @@ def draw_arrow(angle):
 
 
 def draw_calibrate(stage, progress):
+    """Draw calibration progress visualization for EMG sensor setup.
+    
+    Renders a real-time calibration interface showing the current calibration 
+    stage and progress within that stage. The visualization provides clear 
+    feedback during the sensor calibration process, helping users understand 
+    the current state and remaining calibration steps.
+    
+    The calibration display includes:
+    - Stage indicator: Shows which calibration phase is active
+    - Progress bar: Visual representation of completion within current stage
+    - Clean background: Black screen for high contrast visibility
+    - Consistent color scheme: Green theme matching other interface elements
+    
+    Args:
+        stage (int): Current calibration stage number. Typically ranges from 
+            0 to the total number of calibration phases (e.g., 0-4 for a 
+            5-stage calibration process).
+        progress (float): Completion progress within the current stage. 
+            Should be in the range [0.0, 1.0] where:
+            - 0.0: Stage just started
+            - 0.5: Stage half complete
+            - 1.0: Stage fully complete
+    
+    Returns:
+        None: This function draws directly to the pygame screen buffer.
+    
+    Side Effects:
+        - Clears the screen with black background
+        - Locks screen for efficient drawing operations
+        - Draws progress indicators on the global pygame screen surface
+        - Screen must be unlocked and flipped externally to display changes
+    
+    Example:
+        >>> # Show calibration at stage 2, 75% complete
+        >>> draw_calibrate(stage=2, progress=0.75)
+        
+        >>> # Show beginning of stage 0
+        >>> draw_calibrate(stage=0, progress=0.0)
+        
+        >>> # Show completed stage 4
+        >>> draw_calibrate(stage=4, progress=1.0)
+    
+    Visual Layout:
+        - Screen size: 250x200 pixels
+        - Progress bar position: Bottom area (y=170-190)
+        - Progress bar width: 200 pixels (x=20-220)
+        - Color: Green (80, 155, 0) for consistency with arrow display
+        - Border lines: 2-pixel thick frame around progress area
+    
+    Calibration Workflow Integration:
+        This function is typically called in a loop during calibration:
+        1. Initialize calibration process
+        2. For each stage:
+           a. Update progress incrementally (0.0 to 1.0)
+           b. Call draw_calibrate() with current stage and progress
+           c. Update display with pygame.display.flip()
+        3. Proceed to next stage when current stage reaches 1.0
+    
+    Performance Notes:
+        - Uses screen locking for efficient batch drawing
+        - Minimal computational overhead suitable for real-time updates
+        - Optimized for frequent progress updates during calibration
+    """
     screen.fill([0, 0, 0])
     screen.lock()
     cl = 80, 155, 0

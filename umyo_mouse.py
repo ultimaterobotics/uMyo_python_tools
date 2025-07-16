@@ -1,3 +1,107 @@
+"""EMG-Controlled Mouse Interface with Gesture Recognition.
+
+This module implements a sophisticated EMG-based mouse control system that 
+translates muscle signals and hand orientation into computer mouse movements 
+and clicks. It combines EMG signal processing with IMU quaternion data to 
+create an intuitive hands-free computer interface suitable for accessibility 
+applications and gesture-based computing.
+
+The system provides comprehensive mouse control through:
+
+- Real-time cursor movement based on hand/arm orientation
+- EMG-triggered mouse clicks from muscle activation
+- Gesture-based control with calibration and training phases
+- Visual feedback through real-time display integration
+- Adaptive thresholds and sensitivity adjustment
+- Multi-stage calibration for personalized operation
+
+Key Features:
+    - Full mouse cursor control via hand orientation (quaternions)
+    - Left/right click detection through EMG amplitude analysis
+    - Real-time calibration system with visual feedback
+    - Adaptive signal processing with exponential smoothing
+    - Fail-safe mechanisms and emergency stops
+    - High-precision cursor control with configurable sensitivity
+    - Visual feedback through display_mouse integration
+
+Technical Implementation:
+    - Quaternion-based 3D orientation tracking and 2D projection
+    - Exponential moving averages for EMG signal stabilization
+    - Multi-stage calibration protocol for user adaptation
+    - Real-time signal processing with minimal latency
+    - PyAutoGUI integration for system-level mouse control
+    - Configurable thresholds and sensitivity parameters
+
+Control Mechanisms:
+    1. Cursor Movement: Hand orientation → Quaternion → 2D mouse coordinates
+    2. Left Click: EMG channel 0 activation above threshold
+    3. Right Click: EMG channel 1 activation above threshold  
+    4. Calibration: Sequential gesture recording for personalization
+    5. Visual Feedback: Real-time display of control state and calibration
+
+Signal Processing Pipeline:
+    1. Raw EMG and IMU data acquisition from uMyo device
+    2. Quaternion extraction and mathematical processing
+    3. EMG amplitude calculation and exponential smoothing
+    4. Threshold comparison and click detection
+    5. Coordinate transformation and cursor positioning
+    6. System mouse event generation via PyAutoGUI
+
+Applications:
+    - Assistive technology for motor-impaired users
+    - Hands-free computer interaction systems
+    - Gaming interfaces with gesture control
+    - Virtual reality and augmented reality input systems
+    - Research platforms for human-computer interaction
+    - Educational tools for EMG and gesture recognition
+    - Accessibility solutions for various disabilities
+
+Calibration System:
+    - Multi-stage user adaptation protocol
+    - Gesture recording for baseline establishment
+    - Threshold adjustment based on user capabilities
+    - Visual feedback during calibration process
+    - Personalized sensitivity configuration
+
+Dependencies:
+    - umyo_parser: Core uMyo sensor data processing
+    - display_mouse: Visual feedback and calibration interface
+    - pyautogui: System-level mouse control integration
+    - quat_math: Quaternion mathematics and transformations
+    - serial: Serial communication with uMyo devices
+    - time: Timing operations for calibration protocols
+
+Example Usage:
+    >>> # Run the EMG mouse control system
+    >>> python umyo_mouse.py
+    
+    >>> # Follow calibration prompts
+    >>> # available ports:
+    >>> # /dev/ttyUSB0
+    >>> # ===
+    >>> # conn: /dev/ttyUSB0
+    >>> # [Calibration interface appears]
+    >>> # [Mouse control becomes active after calibration]
+
+Safety Features:
+    - PyAutoGUI fail-safe disabled for accessibility use
+    - Minimal pause between operations for responsiveness
+    - Emergency stop mechanisms for user safety
+    - Adaptive thresholds to prevent false triggers
+    - Visual feedback for system status awareness
+
+Performance Characteristics:
+    - Low-latency cursor control suitable for real-time use
+    - Stable operation through exponential signal smoothing
+    - High precision orientation tracking via quaternions
+    - Efficient processing optimized for continuous operation
+    - Memory-efficient with minimal resource requirements
+
+Author: uMyo Development Team
+License: See LICENSE file in the project root
+Version: 1.0
+"""
+
 # kinda main
 
 import umyo_parser

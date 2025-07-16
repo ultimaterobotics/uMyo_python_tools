@@ -1,3 +1,76 @@
+"""Multi-Device EMG and IMU Data Visualization Module.
+
+This module provides comprehensive real-time visualization capabilities for 
+multiple uMyo devices, displaying EMG signals, accelerometer data, and device 
+status information in a unified graphical interface. It supports up to 64 
+simultaneous devices with color-coded plots and real-time data streaming.
+
+The visualization system offers:
+
+- Multi-channel EMG signal plotting with configurable scaling
+- 3-axis accelerometer data visualization (X, Y, Z components)
+- Real-time spectrogram-style displays for frequency analysis
+- Device status monitoring (RSSI, battery, connection status)
+- Quaternion-based orientation tracking
+- Color-coded device identification system
+- Automatic scaling and offset adjustment for optimal viewing
+
+Key Features:
+    - Simultaneous monitoring of up to 64 uMyo devices
+    - Real-time EMG waveform plotting with 2000-sample history
+    - Accelerometer data visualization with 200-sample windows
+    - Device status indicators (battery, signal strength, activity)
+    - Automatic data scaling and centering for optimal display
+    - Color-coded device identification for easy multi-device tracking
+    - Performance-optimized for real-time data streaming
+
+Technical Specifications:
+    - Display resolution: 1200x500 pixels for comprehensive data view
+    - EMG plot history: 2000 samples per device
+    - Accelerometer/spectrogram buffer: 200 samples per axis
+    - Maximum devices: 64 simultaneous connections
+    - Refresh rate: Optimized for real-time data acquisition rates
+
+Data Types Supported:
+    - EMG signals: Raw amplitude values with adjustable scaling
+    - Accelerometer: 3-axis motion data (ax, ay, az)
+    - Quaternions: 4-component orientation representation
+    - Device metadata: RSSI, battery level, magnetic field orientation
+    - Connection status: Activity tracking and timeout detection
+
+Applications:
+    - Multi-user EMG data collection systems
+    - Research platforms for biomechanical analysis
+    - Real-time biometric monitoring arrays
+    - Gesture recognition development environments
+    - Clinical EMG assessment tools
+    - Educational demonstrations of EMG/IMU principles
+
+Dependencies:
+    - pygame: Graphics rendering and window management
+    - math: Mathematical operations for data processing
+    - sys: System operations and clean exit handling
+
+Example Usage:
+    >>> import display_stuff
+    >>> 
+    >>> # Initialize the plotting system
+    >>> display_stuff.plot_init()
+    >>> 
+    >>> # Add EMG data for device 0
+    >>> display_stuff.plot_append_emg(device_id=0, emg_value=1024.5)
+    >>> 
+    >>> # Add accelerometer data  
+    >>> display_stuff.plot_append_acc(device_id=0, ax=0.2, ay=-0.1, az=0.9)
+    >>> 
+    >>> # Update the display
+    >>> display_stuff.draw_all()
+
+Author: uMyo Development Team
+License: See LICENSE file in the project root
+Version: 1.0
+"""
+
 # drawing via pygame
 
 import sys
@@ -29,6 +102,44 @@ active_devices = 0
 
 
 def plot_init():
+    """Initialize plotting buffers for all supported devices.
+    
+    Sets up the data storage arrays for EMG signals, accelerometer data, 
+    and quaternion information for all 64 supported devices. This function 
+    must be called before any plotting operations to ensure proper memory 
+    allocation and data structure initialization.
+    
+    The initialization creates the following data structures:
+    - EMG buffers: 2000 samples per device for waveform history
+    - Spectrogram buffers: 800 samples (200 * 4 components) per device
+    - Accelerometer buffers: 200 samples per axis (X, Y, Z) per device  
+    - Quaternion buffers: 800 samples (200 * 4 components) per device
+    
+    Returns:
+        None: Modifies global plotting arrays in-place.
+    
+    Side Effects:
+        - Allocates memory for plotting buffers
+        - Initializes all arrays with zero values
+        - Prepares data structures for real-time plotting operations
+    
+    Example:
+        >>> # Initialize before starting data collection
+        >>> plot_init()
+        >>> # Now ready to accept data from devices
+        >>> plot_append_emg(0, 1024.5)
+    
+    Memory Usage:
+        - EMG data: 64 devices × 2000 samples × 8 bytes ≈ 1 MB
+        - Accelerometer: 64 devices × 200 samples × 3 axes × 8 bytes ≈ 300 KB
+        - Quaternions: 64 devices × 200 samples × 4 components × 8 bytes ≈ 400 KB
+        - Total: Approximately 1.7 MB for full device capacity
+    
+    Performance Notes:
+        - Called once during application startup
+        - Memory allocation is done upfront for real-time performance
+        - Zero-initialization ensures predictable initial display state
+    """
     global plot_emg, max_devices
     for i in range(max_devices):
         plot_emg.append([0] * plot_len)
@@ -40,6 +151,58 @@ def plot_init():
 
 
 def num_to_color(n):
+    """Convert device number to unique RGB color for visual identification.
+    
+    Maps device ID numbers to distinct colors for easy visual identification 
+    in multi-device displays. Each device gets a unique color to help users 
+    distinguish between different sensors when multiple devices are active 
+    simultaneously.
+    
+    The color scheme uses high-contrast colors that are easily distinguishable:
+    - Device 0: Green (0, 200, 0) - Primary device
+    - Device 1: Blue (0, 100, 200) - Secondary device  
+    - Device 2: Yellow (150, 150, 0) - Tertiary device
+    - Device 3: Magenta (200, 0, 250) - Quaternary device
+    - Other devices: Default white (255, 255, 255)
+    
+    Args:
+        n (int): Device ID number (0-63). Should correspond to the device 
+            index used in data collection and plotting functions.
+    
+    Returns:
+        tuple: RGB color tuple (red, green, blue) where each component 
+            is an integer in the range [0, 255].
+    
+    Example:
+        >>> # Get color for primary device
+        >>> color = num_to_color(0)
+        >>> print(color)
+        (0, 200, 0)
+        
+        >>> # Get color for secondary device
+        >>> color = num_to_color(1) 
+        >>> print(color)
+        (0, 100, 200)
+        
+        >>> # Unknown device gets white
+        >>> color = num_to_color(10)
+        >>> print(color)
+        (255, 255, 255)
+    
+    Usage in Plotting:
+        This function is typically used when drawing device-specific 
+        elements in the visualization:
+        
+        >>> device_id = 2
+        >>> color = num_to_color(device_id)
+        >>> pygame.draw.line(screen, color, start_pos, end_pos)
+    
+    Design Notes:
+        - Colors chosen for maximum contrast and visibility
+        - Primary colors used for first 4 devices (most common use case)
+        - White default ensures unknown devices are still visible
+        - RGB values optimized for both light and dark backgrounds
+    """
     if (n == 0):
         return 0, 200, 0
     if (n == 1):

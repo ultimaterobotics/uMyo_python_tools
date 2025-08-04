@@ -132,6 +132,14 @@ for p in port:
     device = p.device
 print("===")
 
+'''
+
+'''
+
+# macOS serial port caching
+temp_ser = serial.Serial(device, timeout=1)
+temp_ser.close()
+
 # read
 
 ser = serial.Serial(port=device,
@@ -145,10 +153,10 @@ print("conn: " + ser.portstr)
 last_data_upd = 0
 display_stuff.plot_init()
 parse_unproc_cnt = 0
+print(ser)
 while (1):
     cnt = ser.in_waiting
     if (cnt > 0):
-        #        print(parse_unproc_cnt)
         cnt_corr = parse_unproc_cnt / 200
         data = ser.read(cnt)
         parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
@@ -160,3 +168,7 @@ while (1):
             # display_stuff.plot_cycle_lines()
             display_stuff.plot_cycle_tester()
             last_data_upd = dat_id
+
+if "ser" in locals() and ser.is_open:
+    ser.close()
+    print("Serial port closed")

@@ -450,7 +450,7 @@ def umyo_parse(pos):
     nyr = quat_math.rotate_v(Qsg, nyr)
     yaw_q = math.atan2(nyr.y, nyr.x)
 
-    M = quat_math.quat_math.sV(mx, my, mz)
+    M = quat_math.sV(mx, my, mz)
     M = quat_math.v_renorm(M)
     A = quat_math.sV(ax, ay, -az)
     A = quat_math.v_renorm(A)

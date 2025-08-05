@@ -4,8 +4,6 @@ import serial
 from serial.tools import list_ports
 import time
 
-# time.sleep(1)
-
 # Connect to uMyo sensor
 ports = list(list_ports.comports())
 print("available ports:")
@@ -20,7 +18,7 @@ print("===")
 
 temp_ser = serial.Serial(device, timeout=1)
 temp_ser.close()
-# time.sleep(0.5)
+time.sleep(0.5)
 
 print(f"{device=}")
 ser = serial.Serial(
@@ -44,6 +42,14 @@ for _ in range(100):  # 10 seconds at ~10Hz
             print(f"✅ Found sensor {device.unit_id:08X}")
             print(f"🔋 Battery: {device.batt}mV | 📶 RSSI: {device.rssi}")
             print(f"💪 EMG: {device.data_array[-1]} | 🌐 Orientation: {device.Qsg}")
+            print("Device attributes:")
+            for attr in ["Qsg", "ax", "ay", "az", "yaw", "pitch", "roll"]:
+                if hasattr(device, attr):
+                    print(f"{attr}: {getattr(device, attr)}")
+                else:
+                    print(f"{attr}: NOT FOUND")
+            if hasattr(device, 'packet_type'):
+                print(f"Device {device.unit_id:08X}: packet_type={device.packet_type}, data_count={device.data_count}")
             break
     time.sleep(0.1)
 

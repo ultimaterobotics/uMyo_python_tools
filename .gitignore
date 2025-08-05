@@ -132,3 +132,6 @@ display_stuff
 
 # Virtual environment
 umyo_env
+
+# Data
+*.csv

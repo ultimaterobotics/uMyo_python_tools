@@ -132,10 +132,6 @@ for p in port:
     device = p.device
 print("===")
 
-'''
-
-'''
-
 # macOS serial port caching
 temp_ser = serial.Serial(device, timeout=1)
 temp_ser.close()

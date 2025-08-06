@@ -149,7 +149,6 @@ print("conn: " + ser.portstr)
 last_data_upd = 0
 display_stuff.plot_init()
 parse_unproc_cnt = 0
-print(ser)
 while (1):
     cnt = ser.in_waiting
     if (cnt > 0):

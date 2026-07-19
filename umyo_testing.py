@@ -1,8 +1,8 @@
 """Comprehensive uMyo Device Testing and Validation Module.
 
-This module provides a dedicated testing framework for comprehensive validation 
-of uMyo device functionality, data integrity, and system performance. It serves 
-as both a diagnostic tool for troubleshooting device issues and a reference 
+This module provides a dedicated testing framework for comprehensive validation
+of uMyo device functionality, data integrity, and system performance. It serves
+as both a diagnostic tool for troubleshooting device issues and a reference
 implementation for developers working with uMyo sensor systems.
 
 The testing framework focuses on:
@@ -37,17 +37,17 @@ Testing Capabilities:
        - Serial port connectivity and configuration
        - Data packet integrity and structure validation
        - Protocol compliance and error handling
-       
+
     2. Data Quality Assessment:
        - Signal integrity and noise analysis
        - Data synchronization across multiple devices
        - Timing accuracy and jitter measurement
-       
+
     3. Performance Benchmarking:
        - Data throughput measurement and optimization
        - Buffer utilization and overflow detection
        - System latency and response time analysis
-       
+
     4. Long-term Reliability:
        - Continuous operation stability testing
        - Memory usage monitoring and leak detection
@@ -79,7 +79,7 @@ Dependencies:
 Example Usage:
     >>> # Run comprehensive device testing
     >>> python umyo_testing.py
-    
+
     >>> # Monitor output for test results
     >>> # available ports:
     >>> # /dev/ttyUSB0
@@ -103,7 +103,7 @@ Performance Monitoring:
     - Long-term stability metrics collection
 
 Quality Assurance:
-    This module serves as a critical component of the uMyo development 
+    This module serves as a critical component of the uMyo development
     and deployment process, ensuring:
     - Device reliability before production deployment
     - System integration compatibility verification
@@ -120,50 +120,136 @@ Version: 1.0
 
 import umyo_parser
 import display_stuff
-import serial
 from serial.tools import list_ports
+import serial
+import pygame
+import sys
+import time
 
-# list
+VID_PID = "10C4:EA60"
 
-port = list(list_ports.comports())
-print("available ports:")
-for p in port:
-    print(p.device)
-    device = p.device
-print("===")
 
-# macOS serial port caching
-temp_ser = serial.Serial(device, timeout=1)
-temp_ser.close()
+def find_umyo_receiver():
+    ports = list_ports.comports()
+    for port in ports:
+        if VID_PID.lower() in (port.hwid or "").lower():
+            print(f"Auto-selected port: {port.device}")
+            return port.device
+    raise IOError(f"No USB receiver with VID:PID {VID_PID} found!")
 
-# read
 
-ser = serial.Serial(port=device,
-                    baudrate=921600,
-                    parity=serial.PARITY_NONE,
-                    stopbits=1,
-                    bytesize=8,
-                    timeout=0)
+# Windows-safe serial reconnect with retries
+def connect_serial(device):
+    for attempt in range(3):
+        try:
+            return serial.Serial(
+                port=device,
+                baudrate=921600,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                bytesize=serial.EIGHTBITS,
+                timeout=0,
+            )
+        except Exception as e:
+            print(f"Retrying serial connect... attempt {attempt + 1}")
+            time.sleep(0.3)
+    raise IOError("Failed to reconnect serial after retries.")
 
-print("conn: " + ser.portstr)
-last_data_upd = 0
+
+# Optional: add this to your parser if not present
+if not hasattr(umyo_parser, "umyo_clear_buffer"):
+
+    def dummy_clear():
+        umyo_parser.internal_data = []
+
+    umyo_parser.umyo_clear_buffer = dummy_clear
+
+# Optional fallback: implement if not present in display_stuff
+if not hasattr(display_stuff, "plot_blank"):
+
+    def plot_blank():
+        screen = pygame.display.get_surface()
+        if screen:
+            screen.fill((0, 0, 0))
+            pygame.display.flip()
+
+    display_stuff.plot_blank = plot_blank
+
+device = find_umyo_receiver()
+ser = connect_serial(device)
+print("Connected to:", ser.portstr)
 display_stuff.plot_init()
-parse_unproc_cnt = 0
-while (1):
-    cnt = ser.in_waiting
-    if (cnt > 0):
-        cnt_corr = parse_unproc_cnt / 200
-        data = ser.read(cnt)
-        parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
-        dat_id = display_stuff.plot_prepare(umyo_parser.umyo_get_list())
-        d_diff = 0
-        if (not (dat_id is None)):
-            d_diff = dat_id - last_data_upd
-        if (d_diff > 2 + cnt_corr):
-            # display_stuff.plot_cycle_lines()
-            display_stuff.plot_cycle_tester()
-            last_data_upd = dat_id
 
-if "ser" in locals() and ser.is_open:
-    ser.close()
-    print("Serial port closed")
+last_data_upd = 0
+parse_unproc_cnt = 0
+running = True
+received_once = False
+auto_reconnected = False
+last_recv_time = time.time()
+
+try:
+    while running:
+        cnt = ser.in_waiting
+        if cnt > 0:
+            data = ser.read(cnt)
+            parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
+            parsed_list = umyo_parser.umyo_get_list()
+
+            if parsed_list:
+                # Check for required attributes before drawing
+                valid = all(
+                    hasattr(dev, "ax") and hasattr(dev, "ay") and hasattr(dev, "az")
+                    for dev in parsed_list
+                )
+                if valid:
+                    received_once = True
+                    auto_reconnected = False
+                    last_recv_time = time.time()
+                    dat_id = display_stuff.plot_prepare(parsed_list)
+                    if dat_id is not None:
+                        d_diff = dat_id - last_data_upd
+                        if d_diff > 2 + (parse_unproc_cnt / 200):
+                            display_stuff.plot_cycle_tester()
+                            last_data_upd = dat_id
+        else:
+            if not received_once:
+                display_stuff.plot_blank()
+            elif not auto_reconnected and (time.time() - last_recv_time) > 2:
+                print("No new data for 2s, auto-reconnecting serial...")
+                try:
+                    ser.close()
+                except:
+                    pass
+                ser = connect_serial(device)
+                umyo_parser.umyo_clear_buffer()
+                received_once = False
+                auto_reconnected = True
+                last_data_upd = 0
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_r:
+                    print("Manual serial reconnect (R key)...")
+                    try:
+                        ser.close()
+                    except:
+                        pass
+                    ser = connect_serial(device)
+                    umyo_parser.umyo_clear_buffer()
+                    received_once = False
+                    auto_reconnected = False
+                    last_recv_time = time.time()
+                    last_data_upd = 0
+
+except KeyboardInterrupt:
+    print("\nKeyboard interrupt detected. Closing...")
+
+finally:
+    pygame.quit()
+    if ser:
+        ser.close()
+    print("Closed gracefully.")

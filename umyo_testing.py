@@ -62,6 +62,34 @@ if not hasattr(display_stuff, "plot_blank"):
 
     display_stuff.plot_blank = plot_blank
 
+
+def reconnect_serial(old_ser):
+    # Serial died (receiver unplugged, or a reconnect attempt failed). Close it,
+    # then wait — rescanning for the receiver each try, since it can re-enumerate
+    # to a different port name on replug — until it comes back or the window is
+    # closed. Pumps pygame events so the GUI stays responsive while you replug.
+    # Returns (serial, still_running).
+    try:
+        old_ser.close()
+    except Exception:
+        pass
+    print("Receiver lost — waiting for it to come back (unplug/replug is fine)...")
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or (
+                event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
+            ):
+                return old_ser, False
+        try:
+            new_ser = connect_serial(find_umyo_receiver())
+            print("Reconnected to:", new_ser.portstr)
+            umyo_parser.umyo_clear_buffer()
+            return new_ser, True
+        except Exception:
+            display_stuff.plot_blank()
+            time.sleep(0.3)
+
+
 device = find_umyo_receiver()
 ser = connect_serial(device)
 print("Connected to:", ser.portstr)
@@ -76,42 +104,51 @@ last_recv_time = time.time()
 
 try:
     while running:
-        cnt = ser.in_waiting
-        if cnt > 0:
-            data = ser.read(cnt)
-            parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
-            parsed_list = umyo_parser.umyo_get_list()
+        try:
+            cnt = ser.in_waiting
+            if cnt > 0:
+                data = ser.read(cnt)
+                parse_unproc_cnt = umyo_parser.umyo_parse_preprocessor(data)
+                parsed_list = umyo_parser.umyo_get_list()
 
-            if parsed_list:
-                # Check for required attributes before drawing
-                valid = all(
-                    hasattr(dev, "ax") and hasattr(dev, "ay") and hasattr(dev, "az")
-                    for dev in parsed_list
-                )
-                if valid:
-                    received_once = True
-                    auto_reconnected = False
-                    last_recv_time = time.time()
-                    dat_id = display_stuff.plot_prepare(parsed_list)
-                    if dat_id is not None:
-                        d_diff = dat_id - last_data_upd
-                        if d_diff > 2 + (parse_unproc_cnt / 200):
-                            display_stuff.plot_cycle_tester()
-                            last_data_upd = dat_id
-        else:
-            if not received_once:
-                display_stuff.plot_blank()
-            elif not auto_reconnected and (time.time() - last_recv_time) > 2:
-                print("No new data for 2s, auto-reconnecting serial...")
-                try:
-                    ser.close()
-                except:
-                    pass
-                ser = connect_serial(device)
-                umyo_parser.umyo_clear_buffer()
-                received_once = False
-                auto_reconnected = True
-                last_data_upd = 0
+                if parsed_list:
+                    # Check for required attributes before drawing
+                    valid = all(
+                        hasattr(dev, "ax") and hasattr(dev, "ay") and hasattr(dev, "az")
+                        for dev in parsed_list
+                    )
+                    if valid:
+                        received_once = True
+                        auto_reconnected = False
+                        last_recv_time = time.time()
+                        dat_id = display_stuff.plot_prepare(parsed_list)
+                        if dat_id is not None:
+                            d_diff = dat_id - last_data_upd
+                            if d_diff > 2 + (parse_unproc_cnt / 200):
+                                display_stuff.plot_cycle_tester()
+                                last_data_upd = dat_id
+            else:
+                if not received_once:
+                    display_stuff.plot_blank()
+                elif not auto_reconnected and (time.time() - last_recv_time) > 2:
+                    print("No new data for 2s, auto-reconnecting serial...")
+                    try:
+                        ser.close()
+                    except:
+                        pass
+                    ser = connect_serial(device)
+                    umyo_parser.umyo_clear_buffer()
+                    received_once = False
+                    auto_reconnected = True
+                    last_data_upd = 0
+        except (serial.SerialException, OSError):
+            # receiver physically unplugged: in_waiting/read (or the soft-stall
+            # reconnect above) threw. Rescan, wait for it to come back, keep the
+            # window alive — instead of crashing out to pygame.quit().
+            ser, running = reconnect_serial(ser)
+            received_once = False
+            last_data_upd = 0
+            continue
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

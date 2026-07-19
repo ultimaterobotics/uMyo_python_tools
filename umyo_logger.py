@@ -1,3 +1,5 @@
+# uMyoDataLogger — record parsed uMyo data to a timestamped CSV file.
+
 import csv
 import time
 import datetime
@@ -21,7 +23,6 @@ class uMyoDataLogger:
         self.init_csv()
 
     def init_csv(self):
-        """Initialize CSV file with column headers"""
         self.csv_file = open(self.filename, "w", newline="")
 
         # Define comprehensive column headers
@@ -64,7 +65,6 @@ class uMyoDataLogger:
         self.csv_file.flush()
 
     def log_device_data(self, device):
-        """Log data from a single uMyo device to CSV"""
         current_time = time.time() - self.start_time
 
         # Prepare EMG data (pad with None if fewer than 8 channels)
@@ -130,13 +130,11 @@ class uMyoDataLogger:
         self.csv_file.flush()  # Ensure data is written immediately
 
     def log_all_devices(self):
-        """Log data from all active devices"""
         devices = umyo_parser.umyo_get_list()
         for device in devices:
             self.log_device_data(device)
 
     def close(self):
-        """Close the CSV file"""
         if self.csv_file:
             self.csv_file.close()
 

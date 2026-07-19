@@ -1,4 +1,4 @@
-# test_umyo.py - Verify your setup in 30 seconds
+# quick connection check: open the receiver, read a few packets, confirm it works.
 import umyo_parser
 import serial
 from serial.tools import list_ports
